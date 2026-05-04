@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moug — Mon tableau de bord</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --coral: #FF6B6B; --peach: #FFA07A; --rose: #FFB5C8;
+    --lavender: #C3B1E1; --mint: #A8E6CF; --sky: #87CEEB;
+    --yellow: #FFD93D; --bg: #FFF8F5; --card: #FFFFFF;
+    --text: #2D2D2D; --muted: #888; --border: #F0E0D6;
+    --shadow: 0 4px 20px rgba(255,107,107,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* BANNER */
+  #banner {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FFA07A 50%, #FFB5C8 100%);
+    padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+  #banner .title { font-family: 'Caveat', cursive; font-size: 28px; color: #fff; font-weight: 700; }
+  #banner .date-info { color: rgba(255,255,255,0.92); font-size: 13px; margin-top: 2px; }
+  #banner .urgent { background: rgba(255,255,255,0.25); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #fff; margin-top: 4px; display: inline-block; }
+  #weather { text-align: right; color: #fff; }
+  #weather .temp { font-size: 26px; font-weight: 600; }
+  #weather .detail { font-size: 11px; opacity: 0.85; }
+
+  /* STATS */
+  #stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; padding: 16px 20px 0; }
+  .stat-card { background: var(--card); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); border-top: 3px solid var(--coral); }
+  .stat-card:nth-child(2) { border-color: var(--lavender); }
+  .stat-card:nth-child(3) { border-color: var(--mint); }
+  .stat-card:nth-child(4) { border-color: var(--sky); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; font-family: 'Caveat', cursive; }
+
+  /* TABS */
+  #tabs { display: flex; gap: 0; padding: 16px 20px 0; overflow-x: auto; border-bottom: 2px solid var(--border); margin: 0 0 0; }
+  .tab-btn {
+    padding: 10px 16px; font-size: 13px; font-family: 'Caveat', cursive; font-size: 15px;
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--coral); border-bottom-color: var(--coral); font-weight: 700; }
+
+  /* MAIN */
+  #main { padding: 18px 20px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 14px; }
+
+  /* INPUTS */
+  .input-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  input[type=text], input[type=date], select, textarea {
+    padding: 9px 13px; font-size: 13px; font-family: 'Inter', sans-serif;
+    border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg);
+    color: var(--text); outline: none; transition: border 0.2s;
+  }
+  input[type=text]:focus, select:focus, textarea:focus { border-color: var(--coral); }
+  input[type=text].flex1 { flex: 1; min-width: 160px; }
+  .btn {
+    padding: 9px 18px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+    border-radius: 10px; cursor: pointer; border: none; transition: all 0.2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--coral), var(--peach)); color: #fff; box-shadow: 0 3px 10px rgba(255,107,107,0.3); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(255,107,107,0.4); }
+  .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--coral); color: var(--coral); }
+
+  /* TASK */
+  .task-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 13px;
+    background: var(--bg); border-radius: 12px; margin-bottom: 7px;
+    border-left: 4px solid transparent; transition: all 0.2s;
+  }
+  .task-item:hover { transform: translateX(2px); }
+  .task-item.done { opacity: 0.5; }
+  .task-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--coral); cursor: pointer; flex-shrink: 0; }
+  .task-text { flex: 1; font-size: 13px; cursor: pointer; }
+  .task-item.done .task-text { text-decoration: line-through; }
+  .task-note { font-size: 11px; color: var(--muted); font-style: italic; padding: 2px 0 5px 27px; }
+  .tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .tag-redac   { background: #E6F1FB; color: #185FA5; border: 1px solid #85B7EB; }
+  .tag-admin   { background: #EEEDFE; color: #534AB7; border: 1px solid #AFA9EC; }
+  .tag-famille { background: #FBEAF0; color: #993556; border: 1px solid #ED93B1; }
+  .tag-perso   { background: #EAF3DE; color: #3B6D11; border: 1px solid #97C459; }
+  .tag-scolaire{ background: #FAEEDA; color: #854F0B; border: 1px solid #EF9F27; }
+  .pri-haute   { background: #FAECE7; color: #993C1D; border: 1px solid #F0997B; }
+  .pri-moyenne { background: #FAEEDA; color: #854F0B; border: 1px solid #EF9F27; }
+  .pri-basse   { background: #EAF3DE; color: #3B6D11; border: 1px solid #97C459; }
+  .del-btn { background: none; border: none; cursor: pointer; color: #ccc; font-size: 18px; line-height: 1; padding: 0 3px; }
+  .del-btn:hover { color: var(--coral); }
+
+  /* FILTER PILLS */
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { padding: 5px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'Inter'; transition: all 0.2s; }
+  .pill.active, .pill:hover { border-color: var(--coral); color: var(--coral); background: #FFF0EE; }
+
+  /* AGENDA GROUP */
+  .agenda-group-title {
+    font-family: 'Caveat', cursive; font-size: 19px; font-weight: 700;
+    color: var(--coral); margin: 18px 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .agenda-group-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CALENDAR */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-month { font-family: 'Caveat', cursive; font-size: 22px; font-weight: 700; color: var(--coral); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .cal-day-hdr { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 5px 0; }
+  .cal-day {
+    border-radius: 10px; padding: 5px 3px; min-height: 48px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.2s;
+  }
+  .cal-day:hover { background: #FFF0EE; }
+  .cal-day.today { background: linear-gradient(135deg,#FF6B6B22,#FFB5C822); border: 1.5px solid var(--coral); }
+  .cal-day.selected { background: linear-gradient(135deg,var(--coral),var(--peach)); }
+  .cal-day.selected .cal-day-num { color: #fff; }
+  .cal-day-num { font-size: 13px; font-weight: 500; }
+  .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+  .cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .cal-selected-tasks { margin-top: 16px; padding-top: 16px; border-top: 1.5px solid var(--border); }
+
+  /* CONTACTS */
+  .contact-card {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+    background: var(--bg); border-radius: 14px; margin-bottom: 8px; transition: all 0.2s;
+  }
+  .contact-card:hover { transform: translateX(2px); }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-family: 'Caveat', cursive; font-size: 16px; font-weight: 700;
+    flex-shrink: 0; color: #fff;
+  }
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name { font-size: 13px; font-weight: 600; }
+  .contact-role { font-size: 12px; color: var(--muted); }
+  .contact-details { text-align: right; font-size: 12px; color: var(--muted); }
+  .contact-details a { color: #185FA5; text-decoration: none; }
+
+  /* POMODORO */
+  #pomo-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 10px 0; }
+  #pomo-circle { transform: rotate(-90deg); }
+  #pomo-time {
+    font-family: 'Caveat', cursive; font-size: 42px; font-weight: 700; color: var(--coral);
+    transform: rotate(90deg); transform-origin: 70px 70px;
+  }
+  #pomo-mode-label { font-family: 'Caveat', cursive; font-size: 20px; color: var(--muted); }
+  #pomo-sessions { font-size: 13px; color: var(--muted); }
+
+  /* VEILLE */
+  .veille-card {
+    padding: 14px 16px; border-radius: 14px; background: var(--bg);
+    border-left: 4px solid var(--coral); margin-bottom: 10px; transition: all 0.2s;
+  }
+  .veille-card:hover { transform: translateX(3px); box-shadow: var(--shadow); }
+  .veille-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .veille-summary { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .veille-source { font-size: 11px; color: #aaa; margin-top: 5px; }
+  #veille-loading { text-align: center; padding: 30px; color: var(--muted); font-family: 'Caveat', cursive; font-size: 20px; }
+
+  /* NOTES */
+  #notes-area {
+    width: 100%; min-height: 300px; font-family: 'Caveat', cursive; font-size: 18px;
+    line-height: 1.8; border: none; outline: none; background: transparent;
+    resize: vertical; color: var(--text);
+  }
+  #notes-count { font-size: 12px; color: var(--muted); text-align: right; margin-top: 8px; }
+
+  /* SECTION TITLE */
+  .section-title { font-family: 'Caveat', cursive; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+
+  /* API KEY */
+  #api-key-section { background: #FFF8E7; border: 1.5px dashed #FFD93D; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  #api-key-section p { font-size: 12px; color: #854F0B; margin-bottom: 8px; }
+  #api-key-section a { color: var(--coral); }
+
+  @media(max-width:600px) {
+    #stats { grid-template-columns: repeat(2,1fr); }
+    .input-row { flex-direction: column; }
+    #tabs { padding: 12px 12px 0; }
+    #main { padding: 14px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BANNER -->
+<div id="banner">
+  <div>
+    <div class="title">✦ Moug</div>
+    <div class="date-info" id="banner-date"></div>
+    <div class="urgent" id="banner-urgent"></div>
+  </div>
+  <div id="weather"><div class="temp" id="w-temp">…</div><div class="detail" id="w-detail"></div></div>
+</div>
+
+<!-- STATS -->
+<div id="stats">
+  <div class="stat-card"><div class="stat-label">Tâches faites</div><div class="stat-value" id="s-tasks">0/0</div></div>
+  <div class="stat-card"><div class="stat-label">Aujourd'hui</div><div class="stat-value" id="s-today">0</div></div>
+  <div class="stat-card"><div class="stat-label">Sessions focus</div><div class="stat-value" id="s-pomo">0</div></div>
+  <div class="stat-card"><div class="stat-label">Contacts</div><div class="stat-value" id="s-contacts">0</div></div>
+</div>
+
+<!-- TABS -->
+<div id="tabs">
+  <button class="tab-btn active" onclick="showTab('today')">Aujourd'hui</button>
+  <button class="tab-btn" onclick="showTab('tasks')">Tâches</button>
+  <button class="tab-btn" onclick="showTab('agenda')">Agenda</button>
+  <button class="tab-btn" onclick="showTab('calendar')">Calendrier</button>
+  <button class="tab-btn" onclick="showTab('contacts')">Carnet</button>
+  <button class="tab-btn" onclick="showTab('veille')">Veille 📰</button>
+  <button class="tab-btn" onclick="showTab('focus')">Focus</button>
+  <button class="tab-btn" onclick="showTab('notes')">Notes</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- AUJOURD'HUI -->
+  <div id="panel-today" class="panel active">
+    <div class="card">
+      <div class="section-title">☀️ Mes tâches du jour</div>
+      <div class="input-row">
+        <input type="text" class="flex1" id="today-input" placeholder="Ajouter une tâche pour aujourd'hui..." onkeydown="if(event.key==='Enter')addTodayTask()">
+        <button class="btn btn-primary" onclick="addTodayTask()">+ Ajouter</button>
+      </div>
+      <div id="today-list"></div>
+    </div>
+  </div>
+
+  <!-- TÂCHES -->
+  <div id="panel-tasks" class="panel">
+    <div class="card">
+      <div class="pills" id="cat-filter">
+        <button class="pill active" onclick="setFilter('all',this)">Toutes</button>
+        <button class="pill" onclick="setFilter('redac',this)">Rédaction</button>
+        <button class="pill" onclick="setFilter('admin',this)">Admin</button>
+        <button class="pill" onclick="setFilter('famille',this)">Famille</button>
+        <button class="pill" onclick="setFilter('perso',this)">Perso</button>
+        <button class="pill" onclick="setFilter('scolaire',this)">Scolaire</button>
+      </div>
+      <div class="input-row">
+        <input type="text" class="flex1" id="task-input" placeholder="Nouvelle tâche..." onkeydown="if(event.key==='Enter')addTask()">
+        <select id="task-cat">
+          <option value="redac">Rédaction</option>
+          <option value="admin">Admin</option>
+          <option value="famille">Famille</option>
+          <option value="perso">Perso</option>
+          <option value="scolaire">Scolaire</option>
+        </select>
+        <select id="task-pri">
+          <option value="haute">Haute</option>
+          <option value="moyenne">Moyenne</option>
+          <option value="basse">Basse</option>
+        </select>
+        <input type="date" id="task-date">
+        <button class="btn btn-primary" onclick="addTask()">+ Ajouter</button>
+      </div>
+      <input type="text" style="width:100%;margin-bottom:12px;" id="task-note" placeholder="Note rapide (optionnel)...">
+      <div id="task-list"></div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div id="panel-agenda" class="panel">
+    <div class="card">
+      <div id="agenda-today-title" class="agenda-group-title">Aujourd'hui</div>
+      <div id="agenda-today"></div>
+      <div id="agenda-week-title" class="agenda-group-title">Cette semaine</div>
+      <div id="agenda-week"></div>
+      <div id="agenda-later-title" class="agenda-group-title">Plus tard</div>
+      <div id="agenda-later"></div>
+      <details><summary style="cursor:pointer;font-size:12px;color:var(--muted);margin-top:10px;">Tâches passées</summary><div id="agenda-past" style="margin-top:8px;"></div></details>
+    </div>
+  </div>
+
+  <!-- CALENDRIER -->
+  <div id="panel-calendar" class="panel">
+    <div class="card">
+      <div class="cal-nav">
+        <button class="btn btn-ghost" onclick="calPrev()">‹</button>
+        <div class="cal-month" id="cal-title"></div>
+        <button class="btn btn-ghost" onclick="calNext()">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-selected-tasks" id="cal-selected" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- CARNET -->
+  <div id="panel-contacts" class="panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="section-title" style="margin:0;">📒 Contacts clés</div>
+        <button class="btn btn-primary" onclick="toggleAddContact()">+ Ajouter</button>
+      </div>
+      <div id="add-contact-form" style="display:none;background:var(--bg);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div class="input-row">
+          <input type="text" class="flex1" id="c-name" placeholder="Nom *">
+          <input type="text" class="flex1" id="c-role" placeholder="Rôle">
+        </div>
+        <div class="input-row">
+          <input type="text" class="flex1" id="c-phone" placeholder="Téléphone">
+          <input type="text" class="flex1" id="c-email" placeholder="Email">
+          <select id="c-tag">
+            <option value="équipe">Équipe</option>
+            <option value="famille">Famille</option>
+            <option value="source">Source</option>
+            <option value="institutionnel">Institutionnel</option>
+            <option value="autre">Autre</option>
+          </select>
+          <button class="btn btn-primary" onclick="addContact()">Enregistrer</button>
+        </div>
+      </div>
+      <div id="contact-list"></div>
+    </div>
+  </div>
+
+  <!-- VEILLE -->
+  <div id="panel-veille" class="panel">
+    <div class="card">
+      <div id="api-key-section">
+        <p>🔑 Pour activer la veille IA, entrez votre clé API Anthropic ci-dessous.<br>Obtenez-la sur <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys (gratuit pour commencer).</p>
+        <div class="input-row">
+          <input type="text" class="flex1" id="api-key-input" placeholder="sk-ant-...">
+          <button class="btn btn-primary" onclick="saveApiKey()">Enregistrer</button>
+        </div>
+      </div>
+      <div class="pills">
+        <button class="pill active" onclick="setVeilleTopic('local',this)">Actu locale</button>
+        <button class="pill" onclick="setVeilleTopic('culture',this)">Culture</button>
+        <button class="pill" onclick="setVeilleTopic('eco',this)">Économie</button>
+        <button class="pill" onclick="setVeilleTopic('crypto',this)">Crypto & Bitcoin</button>
+        <button class="pill" onclick="setVeilleTopic('tech',this)">Tech & IA</button>
+      </div>
+      <button class="btn btn-ghost" style="margin-bottom:14px;font-size:12px;" onclick="fetchVeille()">🔄 Actualiser</button>
+      <div id="veille-content"><div id="veille-loading" style="display:none;">✨ Recherche en cours…</div><div id="veille-list"></div></div>
+    </div>
+  </div>
+
+  <!-- FOCUS -->
+  <div id="panel-focus" class="panel">
+    <div class="card">
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;">
+        <button class="btn btn-ghost" onclick="setPomoMode('work')">Travail 25min</button>
+        <button class="btn btn-ghost" onclick="setPomoMode('short')">Pause 5min</button>
+        <button class="btn btn-ghost" onclick="setPomoMode('long')">Longue 15min</button>
+      </div>
+      <div id="pomo-container">
+        <svg id="pomo-circle" width="160" height="160">
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#FFE0D6" stroke-width="10"/>
+          <circle id="pomo-arc" cx="80" cy="80" r="68" fill="none" stroke="url(#pg)" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="427" stroke-dashoffset="0"/>
+          <defs><linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FF6B6B"/><stop offset="100%" stop-color="#FFB5C8"/>
+          </linearGradient></defs>
+          <text id="pomo-time" x="80" y="80" text-anchor="middle" dominant-baseline="central">25:00</text>
+        </svg>
+        <div id="pomo-mode-label">Travail</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" id="pomo-btn" onclick="togglePomo()">Démarrer</button>
+          <button class="btn btn-ghost" onclick="resetPomo()">Réinitialiser</button>
+        </div>
+        <div id="pomo-sessions">0 session complétée aujourd'hui</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div id="panel-notes" class="panel">
+    <div class="card">
+      <div class="section-title">📝 Notes libres</div>
+      <textarea id="notes-area" placeholder="Idées articles, notes de réunion, pensées du jour…" oninput="saveNotes();updateNotesCount()"></textarea>
+      <div id="notes-count">0 mots</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const MONTHS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const DAYS   = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const CAT_COLORS = { redac:'#85B7EB', admin:'#AFA9EC', famille:'#ED93B1', perso:'#97C459', scolaire:'#EF9F27' };
+const CAT_LABELS = { redac:'Rédaction', admin:'Admin', famille:'Famille', perso:'Perso', scolaire:'Scolaire' };
+const AVATAR_COLORS = ['#FF6B6B','#FFA07A','#C3B1E1','#87CEEB','#A8E6CF','#FFD93D'];
+const VEILLE_QUERIES = {
+  local:'actualité locale France journal de proximité aujourd\'hui',
+  culture:'actualité culture médias France',
+  eco:'actualité économique France',
+  crypto:'Bitcoin crypto-monnaies actualité',
+  tech:'intelligence artificielle tech actualité France'
+};
+
+function today() {
+  const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function dateLabel(ds) {
+  const diff=Math.ceil((new Date(ds)-new Date(today()))/86400000);
+  if(diff<0)  return {l:`${Math.abs(diff)}j dépassé`,c:'#aaa'};
+  if(diff===0)return {l:'Aujourd\'hui',c:'#FF6B6B'};
+  if(diff===1)return {l:'Demain',c:'#FFA07A'};
+  if(diff<=7) return {l:`Dans ${diff}j`,c:'#FFA07A'};
+  return       {l:`Dans ${diff}j`,c:'#3B6D11'};
+}
+
+let tasks    = JSON.parse(localStorage.getItem('moug_tasks')||'[]');
+let contacts = JSON.parse(localStorage.getItem('moug_contacts')||'[]');
+let notes    = localStorage.getItem('moug_notes')||'';
+let apiKey   = localStorage.getItem('moug_apikey')||'';
+let filterCat= 'all';
+let veilleCache={}, veilleTopic='local';
+let pomoInterval=null, pomoRunning=false, pomoMode='work', pomoLeft=1500, pomoSessions=0;
+const POMO_TIMES={work:1500,short:300,long:900};
+const POMO_LABELS={work:'Travail',short:'Pause courte',long:'Pause longue'};
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
+
+function save() {
+  localStorage.setItem('moug_tasks', JSON.stringify(tasks));
+  localStorage.setItem('moug_contacts', JSON.stringify(contacts));
+  updateStats();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if(name==='today')    renderToday();
+  if(name==='tasks')    renderTasks();
+  if(name==='agenda')   renderAgenda();
+  if(name==='calendar') renderCalendar();
+  if(name==='contacts') renderContacts();
+  if(name==='notes')  { document.getElementById('notes-area').value=notes; updateNotesCount(); }
+  if(name==='veille')   initVeille();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────
+function updateStats() {
+  const done=tasks.filter(t=>t.done).length;
+  document.getElementById('s-tasks').textContent=`${done}/${tasks.length}`;
+  document.getElementById('s-today').textContent=tasks.filter(t=>t.date===today()&&!t.done).length;
+  document.getElementById('s-pomo').textContent=pomoSessions;
+  document.getElementById('s-contacts').textContent=contacts.length;
+  // banner urgent
+  const urgent=tasks.filter(t=>t.date&&!t.done&&(t.date===today()||dateLabel(t.date).l==='Demain'));
+  const ub=document.getElementById('banner-urgent');
+  if(urgent.length) ub.textContent=`⚡ ${urgent.length} tâche${urgent.length>1?'s':''} urgente${urgent.length>1?'s':''} — ${urgent.map(t=>t.text).join(' · ')}`;
+  else ub.textContent='✓ Aucune urgence aujourd\'hui';
+}
+
+// ── WEATHER ───────────────────────────────────────────────────────────
+fetch('https://api.open-meteo.com/v1/forecast?latitude=48.8566&longitude=2.3522&current=temperature_2m,weathercode,windspeed_10m&timezone=Europe%2FParis')
+  .then(r=>r.json()).then(d=>{
+    const c=d.current, code=c.weathercode;
+    const icon=code===0?'☀️':code<=3?'⛅':code<=67?'🌧️':code<=77?'🌨️':'⛈️';
+    document.getElementById('w-temp').textContent=`${icon} ${Math.round(c.temperature_2m)}°C`;
+    document.getElementById('w-detail').textContent=`Paris · vent ${Math.round(c.windspeed_10m)} km/h`;
+  }).catch(()=>{ document.getElementById('w-temp').textContent=''; });
+
+// ── BANNER DATE ───────────────────────────────────────────────────────
+(function(){
+  const d=new Date();
+  const dn=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  document.getElementById('banner-date').textContent=`${dn[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+})();
+
+// ── TASK HELPERS ──────────────────────────────────────────────────────
+function taskHTML(t, showDate=false) {
+  const dl = t.date&&showDate ? `<span style="font-size:11px;color:${dateLabel(t.date).c};white-space:nowrap;">${dateLabel(t.date).l}</span>` : '';
+  return `
+  <div class="task-item ${t.done?'done':''}" style="border-left-color:${CAT_COLORS[t.category]||'#eee'}">
+    <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')">
+    <span class="task-text" onclick="expandTask('${t.id}')">${t.text}</span>
+    ${dl}
+    <span class="tag tag-${t.category}">${CAT_LABELS[t.category]||''}</span>
+    <span class="tag pri-${t.priority}">${t.priority}</span>
+    <button class="del-btn" onclick="deleteTask('${t.id}')">×</button>
+  </div>
+  ${t.notes&&t._expanded?`<div class="task-note">${t.notes}</div>`:''}`;
+}
+function toggleTask(id){ const t=tasks.find(x=>x.id===id); if(t){ t.done=!t.done; save(); renderAll(); } }
+function deleteTask(id){ tasks=tasks.filter(x=>x.id!==id); save(); renderAll(); }
+function expandTask(id){ const t=tasks.find(x=>x.id===id); if(t){ t._expanded=!t._expanded; renderAll(); } }
+function renderAll(){ renderToday(); renderTasks(); renderAgenda(); renderCalendar(); renderContacts(); updateStats(); }
+
+// ── TODAY ─────────────────────────────────────────────────────────────
+function addTodayTask(){
+  const v=document.getElementById('today-input').value.trim();
+  if(!v) return;
+  tasks.push({id:Date.now().toString(),text:v,done:false,priority:'haute',category:'redac',date:today(),notes:'',_expanded:false});
+  save(); document.getElementById('today-input').value=''; renderToday();
+}
+function renderToday(){
+  const td=tasks.filter(t=>t.date===today());
+  const el=document.getElementById('today-list');
+  if(!td.length){ el.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;font-family:Caveat;font-size:18px;">Aucune tâche aujourd\'hui 🎉</p>'; return; }
+  el.innerHTML=td.map(t=>taskHTML(t)).join('');
+}
+
+// ── TASKS ─────────────────────────────────────────────────────────────
+function setFilter(cat,btn){ filterCat=cat; document.querySelectorAll('#cat-filter .pill').forEach(p=>p.classList.remove('active')); btn.classList.add('active'); renderTasks(); }
+function addTask(){
+  const v=document.getElementById('task-input').value.trim(); if(!v) return;
+  tasks.push({id:Date.now().toString(),text:v,done:false,
+    priority:document.getElementById('task-pri').value,
+    category:document.getElementById('task-cat').value,
+    date:document.getElementById('task-date').value,
+    notes:document.getElementById('task-note').value,_expanded:false});
+  save(); document.getElementById('task-input').value=''; document.getElementById('task-note').value=''; document.getElementById('task-date').value=''; renderTasks(); renderToday(); renderAgenda();
+}
+function renderTasks(){
+  const list=filterCat==='all'?tasks:tasks.filter(t=>t.category===filterCat);
+  document.getElementById('task-list').innerHTML=list.length?list.map(t=>taskHTML(t,true)).join(''):'<p style="color:var(--muted);text-align:center;padding:20px;">Aucune tâche.</p>';
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────────
+function renderAgenda(){
+  const dated=tasks.filter(t=>t.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const g={today:[],week:[],later:[],past:[]};
+  dated.forEach(t=>{
+    const diff=Math.ceil((new Date(t.date)-new Date(today()))/86400000);
+    if(diff<0)g.past.push(t); else if(diff===0)g.today.push(t); else if(diff<=7)g.week.push(t); else g.later.push(t);
+  });
+  const render=(id,arr)=>{ document.getElementById(id).innerHTML=arr.length?arr.map(t=>taskHTML(t,true)).join(''):'<p style="color:var(--muted);font-size:13px;padding:4px 8px;">Rien ici.</p>'; };
+  render('agenda-today',g.today); render('agenda-week',g.week); render('agenda-later',g.later); render('agenda-past',g.past);
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────
+function calPrev(){ if(calMonth===0){calYear--;calMonth=11;}else calMonth--; calSel=null; renderCalendar(); }
+function calNext(){ if(calMonth===11){calYear++;calMonth=0;}else calMonth++; calSel=null; renderCalendar(); }
+function renderCalendar(){
+  document.getElementById('cal-title').textContent=`${MONTHS[calMonth]} ${calYear}`;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  let fd=new Date(calYear,calMonth,1).getDay(); fd=fd===0?6:fd-1;
+  const byDate=tasks.filter(t=>t.date).reduce((a,t)=>{a[t.date]=a[t.date]||[];a[t.date].push(t);return a;},{});
+  let html=DAYS.map(d=>`<div class="cal-day-hdr">${d}</div>`).join('');
+  for(let i=0;i<fd;i++)html+='<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dt=byDate[ds]||[];
+    const cls=(ds===today()?'today':'')+(calSel===d?' selected':'');
+    const dots=dt.slice(0,4).map(t=>`<div class="cal-dot" style="background:${CAT_COLORS[t.category]||'#ccc'}"></div>`).join('');
+    html+=`<div class="cal-day ${cls}" onclick="calSelect(${d})"><span class="cal-day-num">${d}</span><div class="cal-dots">${dots}</div></div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  const sel=document.getElementById('cal-selected');
+  if(calSel){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(calSel).padStart(2,'0')}`;
+    const dt=(byDate[ds]||[]);
+    sel.style.display='block';
+    sel.innerHTML=`<div style="font-family:Caveat;font-size:18px;font-weight:700;margin-bottom:10px;color:var(--coral);">${calSel} ${MONTHS[calMonth]}</div>`
+      +(dt.length?dt.map(t=>taskHTML(t)).join(''):'<p style="color:var(--muted);font-size:13px;">Rien de prévu.</p>');
+  } else sel.style.display='none';
+}
+function calSelect(d){ calSel=calSel===d?null:d; renderCalendar(); }
+
+// ── CONTACTS ──────────────────────────────────────────────────────────
+function toggleAddContact(){ const f=document.getElementById('add-contact-form'); f.style.display=f.style.display==='none'?'block':'none'; }
+function addContact(){
+  const name=document.getElementById('c-name').value.trim(); if(!name)return;
+  contacts.push({id:Date.now().toString(),name,role:document.getElementById('c-role').value,phone:document.getElementById('c-phone').value,email:document.getElementById('c-email').value,tag:document.getElementById('c-tag').value});
+  save(); localStorage.setItem('moug_contacts',JSON.stringify(contacts));
+  ['c-name','c-role','c-phone','c-email'].forEach(id=>document.getElementById(id).value='');
+  toggleAddContact(); renderContacts();
+}
+function renderContacts(){
+  const el=document.getElementById('contact-list');
+  if(!contacts.length){el.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;">Aucun contact.</p>';return;}
+  el.innerHTML=contacts.map((c,i)=>`
+    <div class="contact-card">
+      <div class="avatar" style="background:${AVATAR_COLORS[i%AVATAR_COLORS.length]}">${c.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div class="contact-info"><div class="contact-name">${c.name}</div><div class="contact-role">${c.role}</div></div>
+      <div class="contact-details">${c.phone?`<div>${c.phone}</div>`:''}${c.email?`<div><a href="mailto:${c.email}">${c.email}</a></div>`:''}</div>
+      <span class="tag tag-${c.tag==='équipe'?'redac':c.tag==='famille'?'famille':'perso'}" style="margin-left:6px;">${c.tag}</span>
+      <button class="del-btn" onclick="deleteContact('${c.id}')">×</button>
+    </div>`).join('');
+  updateStats();
+}
+function deleteContact(id){ contacts=contacts.filter(x=>x.id!==id); save(); localStorage.setItem('moug_contacts',JSON.stringify(contacts)); renderContacts(); }
+
+// ── VEILLE ────────────────────────────────────────────────────────────
+function initVeille(){
+  if(apiKey) document.getElementById('api-key-input').value=apiKey;
+  fetchVeille();
+}
+function saveApiKey(){
+  apiKey=document.getElementById('api-key-input').value.trim();
+  localStorage.setItem('moug_apikey',apiKey);
+  fetchVeille();
+}
+function setVeilleTopic(topic,btn){
+  veilleTopic=topic;
+  document.querySelectorAll('#panel-veille .pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  fetchVeille();
+}
+async function fetchVeille(){
+  if(!apiKey){ document.getElementById('veille-list').innerHTML='<p style="color:var(--muted);font-size:13px;">👆 Entrez votre clé API pour activer la veille.</p>'; return; }
+  document.getElementById('veille-loading').style.display='block';
+  document.getElementById('veille-list').innerHTML='';
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`Tu es un assistant de veille pour une rédactrice en chef d'un journal local français.
+Recherche les 4 actualités les plus récentes et importantes sur le sujet.
+Réponds UNIQUEMENT en JSON valide, sans markdown ni backticks:
+{"items":[{"titre":"...","résumé":"...","source":"..."}]}
+4 items max. Résumés de 2 phrases max. Sources françaises de préférence.`,
+        messages:[{role:'user',content:`Veille actualité: ${VEILLE_QUERIES[veilleTopic]}`}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    document.getElementById('veille-list').innerHTML=parsed.items.map(item=>`
+      <div class="veille-card">
+        <div class="veille-title">${item.titre}</div>
+        <div class="veille-summary">${item.résumé}</div>
+        ${item.source?`<div class="veille-source">— ${item.source}</div>`:''}
+      </div>`).join('');
+  } catch(e){
+    document.getElementById('veille-list').innerHTML='<p style="color:var(--coral);">Erreur de chargement. Vérifiez votre clé API.</p>';
+  }
+  document.getElementById('veille-loading').style.display='none';
+}
+
+// ── POMODORO ──────────────────────────────────────────────────────────
+function setPomoMode(m){ pomoMode=m; pomoLeft=POMO_TIMES[m]; clearInterval(pomoInterval); pomoRunning=false; document.getElementById('pomo-btn').textContent='Démarrer'; document.getElementById('pomo-mode-label').textContent=POMO_LABELS[m]; updatePomoDisplay(); }
+function togglePomo(){
+  if(pomoRunning){ clearInterval(pomoInterval); pomoRunning=false; document.getElementById('pomo-btn').textContent='Reprendre'; }
+  else { pomoRunning=true; document.getElementById('pomo-btn').textContent='Pause'; pomoInterval=setInterval(()=>{ if(pomoLeft<=0){ clearInterval(pomoInterval); pomoRunning=false; if(pomoMode==='work'){pomoSessions++;updateStats();} document.getElementById('pomo-btn').textContent='Démarrer'; return; } pomoLeft--; updatePomoDisplay(); },1000); }
+}
+function resetPomo(){ clearInterval(pomoInterval); pomoRunning=false; pomoLeft=POMO_TIMES[pomoMode]; document.getElementById('pomo-btn').textContent='Démarrer'; updatePomoDisplay(); }
+function updatePomoDisplay(){
+  const m=String(Math.floor(pomoLeft/60)).padStart(2,'0'), s=String(pomoLeft%60).padStart(2,'0');
+  document.getElementById('pomo-time').textContent=`${m}:${s}`;
+  const total=POMO_TIMES[pomoMode], progress=1-pomoLeft/total, circ=427;
+  document.getElementById('pomo-arc').style.strokeDashoffset=circ*(1-progress);
+  document.getElementById('pomo-sessions').textContent=`${pomoSessions} session${pomoSessions>1?'s':''} complétée${pomoSessions>1?'s':''} aujourd'hui`;
+}
+
+// ── NOTES ─────────────────────────────────────────────────────────────
+function saveNotes(){ notes=document.getElementById('notes-area').value; localStorage.setItem('moug_notes',notes); }
+function updateNotesCount(){ const w=notes.trim().split(/\s+/).filter(Boolean).length; document.getElementById('notes-count').textContent=`${w} mot${w>1?'s':''}`; }
+
+// ── INIT ──────────────────────────────────────────────────────────────
+updateStats(); renderToday();
+</script>
+</body>
+</html>
